@@ -147,7 +147,7 @@ fn main() {
             Event::Expose(expose_event) => {
                 window_size = (expose_event.width, expose_event.height);
                 println!("window_size: {:?}, starting...", window_size);
-                break; // init compelate
+                break; // init complete
             }
             event => {
                 println!("unknown event {:?}", event);
