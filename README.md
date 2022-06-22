@@ -1,6 +1,8 @@
 # xsecurelock-saver-game-of-life
 
-A screensaver module that can run [game of life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) for [xsecurelock](https://github.com/google/xsecurelock).
+A screensaver module that can run [game of life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) for [xsecurelock](https://github.com/google/xsecurelock).  
+
+<video src='https://user-images.githubusercontent.com/33388702/175051232-42a6ca75-e945-4aac-a9cc-64e88b6bf635.mp4'></video>
 
 # Usage
 
