@@ -163,6 +163,12 @@ fn main() {
         window_size.1,
     )
     .unwrap(); // use pixmap as local cache to avoid flicker
+    conn.poly_fill_rectangle(pixmap.pixmap(), black_gc.gcontext(), &[Rectangle{
+        x: 0,
+        y: 0,
+        width: window_size.0,
+        height: window_size.1
+    }]).unwrap();
 
     let mut life = life::Life::new(window_size.0 / cell_size, window_size.1 / cell_size);
     let mut round_count = 0;
