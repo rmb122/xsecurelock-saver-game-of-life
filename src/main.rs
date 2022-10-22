@@ -145,7 +145,7 @@ fn main() {
         let event = conn.wait_for_event().unwrap();
         match event {
             Event::Expose(_) => {
-                println!("exposed, start rending...");
+                println!("exposed, start rendering...");
                 break; // init complete
             }
             event => {
