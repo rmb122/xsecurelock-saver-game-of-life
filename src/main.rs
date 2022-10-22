@@ -144,9 +144,8 @@ fn main() {
     loop {
         let event = conn.wait_for_event().unwrap();
         match event {
-            Event::Expose(expose_event) => {
-                window_size = (expose_event.width, expose_event.height);
-                println!("window_size: {:?}, starting...", window_size);
+            Event::Expose(_) => {
+                println!("exposed, start rending...");
                 break; // init complete
             }
             event => {
@@ -154,6 +153,10 @@ fn main() {
             }
         }
     }
+
+    let replay = conn.get_geometry(window_id).unwrap().reply().unwrap();
+    window_size = (replay.width, replay.height);
+    println!("window_size: {:?}", window_size);
 
     let pixmap = PixmapWrapper::create_pixmap(
         &conn,
