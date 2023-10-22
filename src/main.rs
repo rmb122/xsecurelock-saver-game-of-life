@@ -1,4 +1,5 @@
 mod life;
+mod rle;
 
 use life::LifeStatusDiff;
 use std::env;
@@ -104,6 +105,14 @@ fn read_number_from_env<T: FromStr>(env_key: &str, default_value: T) -> T {
     };
 }
 
+fn read_string_from_env(env_key: &str, default_value: &str) -> String {
+    if let Ok(env_value) = env::var(env_key) {
+        return env_value;
+    } else {
+        return default_value.to_string();
+    };
+}
+
 fn main() {
     let (conn, screen_num) = connect(None).expect("Failed to connect to the X11 server");
     let screen = &conn.setup().roots[screen_num];
@@ -117,10 +126,18 @@ fn main() {
     let window_id = setup_window(&conn, screen, window_size, parent_window_id).unwrap();
 
     let cell_size = read_number_from_env("CGOL_CELL_SIZE", 5u16);
-    let alive_probability = read_number_from_env("CGOL_INITIALIZE_ALIVE_PROBABILITY", 0.2f64);
-    let mutation_round_interval = read_number_from_env("CGOL_MUTATION_ROUND_INTERVAL", 10i32);
+    let init_alive_probability = read_number_from_env("CGOL_INIT_ALIVE_PROBABILITY", 0.2f64);
+    let init_rle_file = read_string_from_env("CGOL_INIT_RLE_FILE", "");
+    let mutation_round_interval = read_number_from_env("CGOL_MUTATION_ROUND_INTERVAL", 0u32);
     let mutation_probability = read_number_from_env("CGOL_MUTATION_PROBABILITY", 0.001f64);
     let round_sleep_time = read_number_from_env("CGOL_ROUND_SLEEP_TIME", 0.1f64);
+
+    // 检查下是否使用 rle 初始化
+    let init_rle: Option<String> = if init_rle_file.len() > 0 {
+        Some(std::fs::read_to_string(init_rle_file).expect("read rle file failed"))
+    } else {
+        None
+    };
 
     let white_gc = GcontextWrapper::create_gc(
         &conn,
@@ -165,17 +182,30 @@ fn main() {
         window_size.0,
         window_size.1,
     )
-    .unwrap(); // use pixmap as local cache to avoid flicker
-    conn.poly_fill_rectangle(pixmap.pixmap(), black_gc.gcontext(), &[Rectangle{
-        x: 0,
-        y: 0,
-        width: window_size.0,
-        height: window_size.1
-    }]).unwrap();
+    .unwrap();
+
+    // use pixmap as local cache to avoid flicker
+    conn.poly_fill_rectangle(
+        pixmap.pixmap(),
+        black_gc.gcontext(),
+        &[Rectangle {
+            x: 0,
+            y: 0,
+            width: window_size.0,
+            height: window_size.1,
+        }],
+    )
+    .unwrap();
 
     let mut life = life::Life::new(window_size.0 / cell_size, window_size.1 / cell_size);
     let mut round_count = 0;
-    let diffs = life.initialize(alive_probability);
+
+    let diffs = if let Some(init_rle) = init_rle {
+        life.initialize_rle(init_rle)
+    } else {
+        life.initialize_random(init_alive_probability)
+    };
+
     draw_diffs(
         &conn,
         pixmap.pixmap(),
@@ -186,21 +216,25 @@ fn main() {
     );
     conn.flush().unwrap();
 
-    loop {
-        if round_count == mutation_round_interval {
-            round_count = 0;
+    let enable_mutation = mutation_round_interval > 0;
 
-            let diffs = life.add_mutation(mutation_probability);
-            draw_diffs(
-                &conn,
-                pixmap.pixmap(),
-                white_gc.gcontext(),
-                black_gc.gcontext(),
-                &diffs,
-                cell_size,
-            );
+    loop {
+        if enable_mutation {
+            if round_count == mutation_round_interval {
+                round_count = 0;
+
+                let diffs = life.add_mutation(mutation_probability);
+                draw_diffs(
+                    &conn,
+                    pixmap.pixmap(),
+                    white_gc.gcontext(),
+                    black_gc.gcontext(),
+                    &diffs,
+                    cell_size,
+                );
+            }
+            round_count += 1;
         }
-        round_count += 1;
 
         let diffs = life.next_round();
         draw_diffs(

@@ -3,7 +3,9 @@ use std::cell::RefCell;
 use std::ops::Not;
 use std::vec;
 
-#[derive(Copy, Clone, PartialEq)]
+use crate::rle::LifeRLEParser;
+
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LifeStatus {
     Dead,
     Alive,
@@ -42,7 +44,7 @@ impl Life {
         }
     }
 
-    pub fn initialize(&mut self, alive_probability: f64) -> Vec<LifeStatusDiff> {
+    pub fn initialize_random(&mut self, alive_probability: f64) -> Vec<LifeStatusDiff> {
         let mut diffs: Vec<LifeStatusDiff> = Vec::new();
 
         for (y, row) in self.board.borrow_mut().iter_mut().enumerate() {
@@ -59,6 +61,34 @@ impl Life {
                     row[x] = LifeStatus::Dead;
                 }
             }
+        }
+        return diffs;
+    }
+
+    pub fn initialize_rle(&mut self, rle: String) -> Vec<LifeStatusDiff> {
+        let mut diffs: Vec<LifeStatusDiff> = Vec::new();
+        let mut board = self.board.borrow_mut();
+
+        let board_x_size = board[0].len() as u16;
+        let board_y_size = board.len() as u16;
+        let mut parse = LifeRLEParser::new(&rle);
+
+        let result = parse.parse_rle(|x, y| {
+            if x >= board_x_size as u32 || y >= board_y_size as u32 {
+                // 跳过超出 board 的 cell
+                return;
+            }
+
+            board[y as usize][x as usize] = LifeStatus::Alive;
+
+            diffs.push(LifeStatusDiff {
+                x: x as u16,
+                y: y as u16,
+                status: LifeStatus::Alive,
+            });
+        });
+        if result.is_err() {
+            panic!("rle parse error: {}", result.unwrap_err());
         }
         return diffs;
     }
