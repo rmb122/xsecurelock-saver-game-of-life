@@ -8,6 +8,7 @@ use std::thread;
 use std::time::Duration;
 use x11rb::connect;
 use x11rb::connection::Connection;
+use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 use x11rb::rust_connection::ReplyOrIdError;
@@ -116,14 +117,13 @@ fn read_string_from_env(env_key: &str, default_value: &str) -> String {
 fn main() {
     let (conn, screen_num) = connect(None).expect("Failed to connect to the X11 server");
     let screen = &conn.setup().roots[screen_num];
-    let mut window_size = (700, 500);
 
     let parent_window_id: Option<u32> = if let Ok(env_window_id) = env::var("XSCREENSAVER_WINDOW") {
         Some(env_window_id.parse().expect("Invalid window id"))
     } else {
         None
     };
-    let window_id = setup_window(&conn, screen, window_size, parent_window_id).unwrap();
+    let window_id = setup_window(&conn, screen, (1, 1), parent_window_id).unwrap();
 
     let cell_size = read_number_from_env("CGOL_CELL_SIZE", 5u16);
     let init_alive_probability = read_number_from_env("CGOL_INIT_ALIVE_PROBABILITY", 0.2f64);
@@ -171,8 +171,17 @@ fn main() {
         }
     }
 
-    let replay = conn.get_geometry(window_id).unwrap().reply().unwrap();
-    window_size = (replay.width, replay.height);
+    let parent_window_id = if let Some(parent_window_id) = parent_window_id {
+        parent_window_id
+    } else {
+        window_id
+    };
+    let reply = conn
+        .get_geometry(parent_window_id)
+        .unwrap()
+        .reply()
+        .unwrap();
+    let window_size = (reply.width, reply.height);
     println!("window_size: {:?}", window_size);
 
     let pixmap = PixmapWrapper::create_pixmap(
