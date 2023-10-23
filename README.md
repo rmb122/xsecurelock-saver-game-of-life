@@ -33,5 +33,8 @@ The module also have some options can be passed by environment variables.
 
 ## RLE
 
-The default position of pattern is the left-top corner. You can use `base_x` and `base_y` to adjust the position of pattern.  
-e.g. `base_x = 10, base_y = 20`, will move pattern 10 cell to the right and move pattern 20 cell to the bottom. 
+The default position of pattern is the top-left corner. You can use `base_x` and `base_y` to adjust the position of pattern.  
+e.g. `x = 19, y = 10, rule = b3/s23, base_x = 10, base_y = 20`, will move pattern 10 cells to the right and move pattern 20 cells down.  
+
+You can also change the base coordinate by using `center`. e.g. `x = 19, y = 10, rule = b3/s23, base_x = 1, base_y = 0, center = true`.  
+Now the `base_x` / `base_y`'s movement are based on the center point of monitor.

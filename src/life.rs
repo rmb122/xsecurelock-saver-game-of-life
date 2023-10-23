@@ -69,16 +69,9 @@ impl Life {
         let mut diffs: Vec<LifeStatusDiff> = Vec::new();
         let mut board = self.board.borrow_mut();
 
-        let board_x_size = board[0].len() as u16;
-        let board_y_size = board.len() as u16;
-        let mut parse = LifeRLEParser::new(&rle);
+        let mut parse = LifeRLEParser::new(&rle, board[0].len(), board.len());
 
         let result = parse.parse_rle(|x, y| {
-            if x >= board_x_size as u32 || y >= board_y_size as u32 {
-                // 跳过超出 board 的 cell
-                return;
-            }
-
             board[y as usize][x as usize] = LifeStatus::Alive;
 
             diffs.push(LifeStatusDiff {

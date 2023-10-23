@@ -46,21 +46,28 @@ impl fmt::Display for LifeRLEParseError {
 #[derive(Debug)]
 pub struct LifeRLEParser<'a> {
     rle: &'a str,
+    board_width: u32,
+    board_height: u32,
 
-    width: u32,
-    height: u32,
-    base_x: u32,
-    base_y: u32,
+    life_width: u32,
+    life_height: u32,
+    base_x: i32,
+    base_y: i32,
+    center: bool,
 }
 
 impl<'a> LifeRLEParser<'a> {
-    pub fn new(rle: &str) -> LifeRLEParser {
+    pub fn new(rle: &str, board_width: usize, board_height: usize) -> LifeRLEParser {
         return LifeRLEParser {
             rle,
-            width: 0,
-            height: 0,
+            board_width: board_width as u32,
+            board_height: board_height as u32,
+
+            life_width: 0,
+            life_height: 0,
             base_x: 0,
             base_y: 0,
+            center: false,
         };
     }
 
@@ -72,12 +79,12 @@ impl<'a> LifeRLEParser<'a> {
             if segment.len() == 2 {
                 match segment[0] {
                     "x" => {
-                        self.width = segment[1]
+                        self.life_width = segment[1]
                             .parse()
                             .map_err(|_| LifeRLEParseError::new("invalid width found"))?
                     }
                     "y" => {
-                        self.height = segment[1]
+                        self.life_height = segment[1]
                             .parse()
                             .map_err(|_| LifeRLEParseError::new("invalid height found"))?
                     }
@@ -91,9 +98,19 @@ impl<'a> LifeRLEParser<'a> {
                             .parse()
                             .map_err(|_| LifeRLEParseError::new("invalid base y found"))?
                     }
+                    "center" => {
+                        self.center = segment[1]
+                            .parse()
+                            .map_err(|_| LifeRLEParseError::new("invalid center value found"))?
+                    }
                     _ => {}
                 }
             }
+        }
+
+        if self.center {
+            self.base_x += (self.board_width / 2) as i32;
+            self.base_y += (self.board_height / 2) as i32;
         }
 
         Ok(())
@@ -116,7 +133,7 @@ impl<'a> LifeRLEParser<'a> {
             Err(LifeRLEParseError::new("empty rle found"))?
         };
 
-        let mut curr_length = 0;
+        let mut curr_length: i32 = 0;
         let transform_curr_length = |length| {
             if length == 0 {
                 return 1;
@@ -124,8 +141,8 @@ impl<'a> LifeRLEParser<'a> {
                 return length;
             }
         };
-        let mut curr_x: u32 = 0;
-        let mut curr_y: u32 = 0;
+        let mut curr_x: i32 = 0;
+        let mut curr_y: i32 = 0;
 
         'outer: for line in iter
         // 不为空且不是 # 开头
@@ -134,7 +151,7 @@ impl<'a> LifeRLEParser<'a> {
                 match char {
                     _ if char >= '0' && char <= '9' => {
                         curr_length *= 10;
-                        curr_length += char as u32 - '0' as u32;
+                        curr_length += char as i32 - '0' as i32;
                     }
                     'b' => {
                         curr_x += transform_curr_length(curr_length);
@@ -142,7 +159,17 @@ impl<'a> LifeRLEParser<'a> {
                     }
                     'o' => {
                         for _ in 0..transform_curr_length(curr_length) {
-                            alive_callback(self.base_x + curr_x, self.base_y + curr_y);
+                            let real_x = self.base_x + curr_x as i32;
+                            let real_y = self.base_y + curr_y as i32;
+
+                            // 在 board 范围内
+                            if real_x >= 0
+                                && real_y >= 0
+                                && real_x < (self.board_width as i32)
+                                && real_y < (self.board_height as i32)
+                            {
+                                alive_callback(real_x as u32, real_y as u32);
+                            }
                             curr_x += 1;
                         }
                         curr_length = 0;
@@ -176,11 +203,11 @@ fn parse_rle_test() {
     #N 46P4H1V0
 #C The smallest known c/4 orthogonal spaceship. Has period 4.
 #C www.conwaylife.com/wiki/index.php?title=46P4H1V0
-x = 19, y = 10, rule = b3/s23, base_x = 1, base_y = 0
+x = 19, y = 10, rule = b3/s23, base_x = 1, base_y = 0, center = true
 3bo11bo3b$3bo11bo3b$2bobo9bobo2b2$bo3bo7bo3bob$bob6ob6obob$o7bobo7bo$o
 7bobo7bo$o17bo$bob2ob2o3b2ob2obo!
 "###;
-    let mut parser = LifeRLEParser::new(rle);
+    let mut parser = LifeRLEParser::new(rle, 100, 100);
 
     println!(
         "{:?}",
