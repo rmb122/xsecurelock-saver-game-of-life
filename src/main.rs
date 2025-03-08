@@ -6,14 +6,14 @@ use std::env;
 use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
+use x11rb::COPY_DEPTH_FROM_PARENT;
 use x11rb::connect;
 use x11rb::connection::Connection;
+use x11rb::protocol::Event;
 use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::protocol::xproto::*;
-use x11rb::protocol::Event;
 use x11rb::rust_connection::ReplyOrIdError;
 use x11rb::wrapper::ConnectionExt as _;
-use x11rb::COPY_DEPTH_FROM_PARENT;
 
 use crate::life::LifeStatus;
 
@@ -124,7 +124,6 @@ fn main() {
         None
     };
     let window_id = setup_window(&conn, screen, (1, 1), parent_window_id).unwrap();
-
     let cell_size = read_number_from_env("CGOL_CELL_SIZE", 5u16);
     let init_alive_probability = read_number_from_env("CGOL_INIT_ALIVE_PROBABILITY", 0.2f64);
     let init_rle_file = read_string_from_env("CGOL_INIT_RLE_FILE", "");

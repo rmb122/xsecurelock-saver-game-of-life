@@ -40,7 +40,7 @@ impl Life {
                 vec![LifeStatus::Dead; size_x as usize];
                 size_y as usize
             ]),
-            rng: rand::thread_rng(),
+            rng: rand::rng(),
         }
     }
 
@@ -49,7 +49,7 @@ impl Life {
 
         for (y, row) in self.board.borrow_mut().iter_mut().enumerate() {
             for x in 0..row.len() {
-                if self.rng.gen_range(0f64..=1f64) <= alive_probability {
+                if self.rng.random_range(0f64..=1f64) <= alive_probability {
                     row[x] = LifeStatus::Alive;
 
                     diffs.push(LifeStatusDiff {
@@ -116,7 +116,7 @@ impl Life {
 
         for (y, row) in self.board.borrow_mut().iter_mut().enumerate() {
             for x in 0..row.len() {
-                if self.rng.gen_range(0f64..=1f64) <= mutation_probability {
+                if self.rng.random_range(0f64..=1f64) <= mutation_probability {
                     row[x] = !row[x];
                     diffs.push(LifeStatusDiff {
                         x: x as u16,
